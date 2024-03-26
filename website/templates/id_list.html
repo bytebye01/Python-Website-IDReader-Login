@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}ID Card List{% endblock %}
+{% block content %}
+<div class="container">
+    <br>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1>ID Card</h1>
+        <a href="{{ url_for('views.home') }}" class="btn btn-success">Add</a>
+      </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>ID Number</th>
+                <th>Thai Name</th>
+                <th>English Name</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for card in id_cards %}
+            <tr>
+                <td>{{ card.id_number }}</td>
+                <td>{{ card.thai_name }}</td>
+                <td>{{ card.english_name }}</td>
+                <td><button onclick="showFullView('{{ card.id_number }}')"class="btn btn-info">View</button>
+                <button onclick="deleteCard('{{ card.id_number }}')"class="btn btn-danger">Delete</button></td>
+                
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Popup Content -->
+<div id="popup" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border: 1px solid #ccc; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); width: 40%; height: 95%; overflow: auto;">
+    <button onclick="closePopup()" style="position: absolute; top: 10px; right: 10px;"class="btn btn-dark">X</button>
+    <div id="popupContent"></div>
+</div>
+
+<script>
+    const id_cards = [{% for card in id_cards %}
+        {
+            photo_base64: '{{ card.photo_base64 }}',
+            id_number: '{{ card.id_number }}',
+            thai_name: '{{ card.thai_name }}',
+            english_name: '{{ card.english_name }}',
+            gender: '{{ card.gender }}',
+            date_of_birth: '{{ card.date_of_birth }}',
+            age: '{{ card.age }}',
+            religion: '{{ card.religion }}',
+            address: '{{ card.address }}',
+            issuer: '{{ card.issuer }}',
+            date_of_issue: '{{ card.date_of_issue }}',
+            date_of_expiry: '{{ card.date_of_expiry }}',
+        },
+    {% endfor %}];
+
+    function showFullView(idNumber) {
+        const card = findCardByIdNumber(idNumber);
+        const popupContent = `
+            <img src="data:image/png;base64, ${card.photo_base64}" style="max-width: 100%; height: auto; display: block; margin: 0 auto;" alt="Photo" />
+            
+            <p>ID Number: ${card.id_number}</p>
+            <p>Thai Name: ${card.thai_name}</p>
+            <p>English Name: ${card.english_name}</p>
+            <p>Gender: ${card.gender}</p>
+            <p>Date of Birth: ${card.date_of_birth}</p>
+            <p>Age: ${card.age}</p>
+            <p>Religion: ${card.religion}</p>
+            <p>Address: ${card.address}</p>
+            <p>Issuer: ${card.issuer}</p>
+            <p>Date of Issue: ${card.date_of_issue}</p>
+            <p>Date of Expiry: ${card.date_of_expiry}</p>
+            <button onclick="copyBase64('${card.photo_base64}')" class="btn btn-warning">Photo(Base64)</button>
+            <!-- เพิ่มข้อมูลเพิ่มเติมตามต้องการ -->
+        `;
+        document.getElementById('popupContent').innerHTML = popupContent;
+        document.getElementById('popup').style.display = 'block';
+    }
+
+    function copyBase64(base64Data) {
+        const textArea = document.createElement('textarea');
+        textArea.value = base64Data;
+        document.body.appendChild(textArea);
+        textArea.select();
+        textArea.setSelectionRange(0, 99999);
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Photo(Base64) copied to clipboard!');
+    }
+    function closePopup() {
+        document.getElementById('popup').style.display = 'none';
+    }
+
+    function findCardByIdNumber(idNumber) {
+        return id_cards.find(card => card.id_number === idNumber);
+    }
+    function deleteCard(idNumber) {
+        if (confirm('Are you sure you want to delete this ID card?')) {
+            fetch('/delete_id_card', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `id_number=${idNumber}`,
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    window.location.reload();
+                    // Refresh the page or update the ID card list after successful deletion
+                    // For example: location.reload();
+                } else {
+                    alert('Failed to delete ID card');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while deleting the ID card');
+            });
+        }
+    }
+
+</script>
+{% endblock %}
